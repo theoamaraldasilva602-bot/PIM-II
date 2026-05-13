@@ -11,7 +11,7 @@ Este projeto implementa um sistema de triagem de edital automatizado que process
 
 O sistema segue o seguinte fluxo:
 
-1. **Entrada**: Recebe um arquivo PDF contendo informações de triagem de pacientes
+1. **Entrada**: Recebe um arquivo PDF contendo informações de triagem de Editais
 2. **Processamento**: Analisa o documento e extrai os dados relevantes
 3. **Saída**: Gera um relatório estruturado em formato JSON com os resultados
 
