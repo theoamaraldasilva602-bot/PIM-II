@@ -19,7 +19,20 @@ from config.settings import (
 from prex_triagem.src.pipeline import processar_proposta
 from prex_triagem.src.relatorio import inicializar_csv_consolidado
 
+#Configurar logging para o projeto.
 def configurar_logging(nivel_console: int = logging.INFO) -> None:
+    """
+    Configura o sistema de logging do programa.
+
+    Esta função define como as mensagens de log serão exibidas no console
+    e salvas em arquivo, permitindo acompanhar a execução do programa
+    durante desenvolvimento e produção.
+
+    Parâmetros:
+        nivel_console (int): Nível mínimo de mensagens mostradas no console.
+                            Padrão: logging.INFO (mostra INFO, WARNING, ERROR).
+                            Se VERBOSE=True, mostra DEBUG.
+    """
 
     ARQUIVO_LOG.parent.mkdir(parents=True, exist_ok=True)
 
@@ -44,7 +57,21 @@ def configurar_logging(nivel_console: int = logging.INFO) -> None:
     logging.getLogger("pdfplumber").setLevel(logging.WARNING)
     logging.getLogger("PyPDF2").setLevel(logging.WARNING)
 
+#Carregar a biblioteca de termos.
 def carregar_biblioteca(caminho: Path) -> dict:
+    """
+    Carrega a biblioteca de termos de validação a partir de um arquivo JSON.
+
+    Esta função lê o arquivo 'biblioteca_termos.json' que contém os termos
+    positivos, negativos e de alerta para cada bloco de validação.
+    Se o arquivo não existir ou for inválido, o programa é encerrado.
+
+    Parâmetros:
+        caminho (Path): Caminho absoluto para o arquivo JSON da biblioteca.
+
+    Retorna:
+        dict: Dicionário com os dados da biblioteca carregados.
+    """
     if not caminho.exists():
         logging.critical(
             "Arquivo de biblioteca não encontrado: %s\n"
@@ -64,7 +91,21 @@ def carregar_biblioteca(caminho: Path) -> dict:
         )
         sys.exit(1)
 
+#Listar os arquivos PDF na pasta especificada.
 def listar_pdfs(pasta: Path) -> list[Path]:
+    """
+    Lista todos os arquivos PDF válidos em uma pasta específica.
+
+    Esta função verifica a pasta definida em settings.py (normalmente 'data/pdfs_entrada')
+    e retorna uma lista ordenada de caminhos para arquivos PDF.
+    Apenas extensões aceitas (definidas em EXTENSOES_ACEITAS) são incluídas.
+
+    Parâmetros:
+        pasta (Path): Caminho para a pasta onde buscar os PDFs.
+
+    Retorna:
+        list[Path]: Lista de caminhos absolutos para os arquivos PDF encontrados.
+    """
 
     if not pasta.exists():
         logging.warning(
@@ -82,7 +123,35 @@ def listar_pdfs(pasta: Path) -> list[Path]:
     logging.info("PDFs encontrados em '%s': %d arquivo(s).", pasta, len(pdfs))
     return pdfs
 
-def exibir_resumo_final(resultados: list[dict]) -> None:
+# Listar relatórios individuais gerados.
+def listar_relatorios_individuais(pasta_relatorios: Path) -> list[Path]:
+    """
+    Lista todos os relatórios individuais em TXT gerados na pasta.
+    
+    Parâmetros:
+        pasta_relatorios (Path): Caminho da pasta de relatórios.
+    
+    Retorna:
+        list[Path]: Lista de caminhos para os arquivos *_relatorio.txt encontrados.
+    """
+    if not pasta_relatorios.exists():
+        return []
+    
+    relatorios = sorted(pasta_relatorios.glob("*_relatorio.txt"))
+    return relatorios
+
+# Exibir resultado final da triagem, incluindo estatísticas e ranking.
+def exibir_resumo_final(resultados: list[dict], pasta_relatorios: Path = None) -> None:
+    """
+    Exibe o resumo final da triagem com estatísticas globais e lista limitada de pareceres.
+    
+    Mostra apenas estatísticas gerais (aptos, alertas, inaptos) e os primeiros 5 pareceres
+    individuais gerados, evitando inundação do terminal.
+    
+    Parâmetros:
+        resultados (list[dict]): Lista com os resultados de todas as propostas.
+        pasta_relatorios (Path): Caminho da pasta de relatórios para listar pareceres.
+    """
     total = len(resultados)
     aptos = sum(1 for r in resultados if r["status"] == "APTO")
     alertas = sum(1 for r in resultados if r["status"] == "ALERTA")
@@ -97,26 +166,35 @@ def exibir_resumo_final(resultados: list[dict]) -> None:
     print(f"  ❌ INAPTAS                      : {inaptos}")
     print("=" * 70)
 
-    if resultados:
-        ranking = sorted(
-            resultados, key=lambda r: r["pontuacao_merito"], reverse=True
-        )[:5]
-
-        print("\n  🏆 Top 5 por Pontuação de Mérito:")
+    if pasta_relatorios:
+        relatorios_gerados = listar_relatorios_individuais(pasta_relatorios)
+        print("\n  📄 Pareceres Individuais Gerados:")
         print("-" * 70)
-        for pos, item in enumerate(ranking, start=1):
-            print(
-                f"  {pos}. {item['arquivo'][:45]:<45} "
-                f"{item['pontuacao_merito']:>3} pts  "
-                f"({item['classificacao_merito']})"
-            )
+        if relatorios_gerados:
+            # Mostrar apenas os primeiros 5 para evitar inundação
+            max_exibir = 5
+            for relatorio in relatorios_gerados[:max_exibir]:
+                print(f"     • {relatorio.name}")
+            
+            restantes = len(relatorios_gerados) - max_exibir
+            if restantes > 0:
+                print(f"     ... e mais {restantes} parecer(es) salvo(s) no disco")
+        else:
+            print("     (nenhum parecer encontrado)")
 
-    print("\n  📁 Relatórios individuais salvos em: relatorios/")
-    print(f"  📊 Relatório consolidado: {RELATORIO_CONSOLIDADO}")
+    print("\n  📁 Arquivos salvos em: relatorios/")
+    print(f"  📊 Relatório consolidado (CSV): {RELATORIO_CONSOLIDADO}")
     print(f"  📝 Log completo: {ARQUIVO_LOG}")
     print("=" * 70)
 
 def main() -> None:
+    """
+    Função principal do programa de triagem de editais PREX/IFB.
+    
+    Coordena o carregamento da biblioteca, listagem dos PDFs, processamento
+    individual de cada proposta (gerando pareceres em TXT) e exibição
+    das estatísticas globais ao final.
+    """
 
     configurar_logging()
     logger = logging.getLogger(__name__)
@@ -172,7 +250,8 @@ def main() -> None:
         duracao, len(resultados), len(pdfs)
     )
 
-    exibir_resumo_final(resultados)
+    exibir_resumo_final(resultados, PASTA_RELATORIOS)
+    
     print(f"\n  ⏱️  Tempo total: {duracao:.1f} segundos\n")
 
 
