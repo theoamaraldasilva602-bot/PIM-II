@@ -1,6 +1,7 @@
 # PIM-II - Sistema de Triagem de Edital (Faculdade UNIP: Universidade Paulista)
 ## Alunos (a):
 `Kaique Souza Pereira RA: 2625068`
+`Edgar Parreira França RA: 2625239`
 
 
 ## Sobre o Projeto
