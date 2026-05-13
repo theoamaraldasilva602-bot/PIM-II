@@ -5,7 +5,6 @@
 `Ana Luiza Morais Barbieri RA: 2622005`
 `Theo Amaral Da Silva RA: 2626098 `
 
-
 ## Sobre o Projeto
 
 Este projeto implementa um sistema de triagem de edital automatizado que processa documentos PDF e gera relatórios estruturados em TXT. O sistema utiliza processamento de dados para extrair informações relevantes de formulários de triagem e produzir análises padronizadas.
