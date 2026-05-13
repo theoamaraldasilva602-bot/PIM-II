@@ -2,7 +2,7 @@
 ## Alunos (a):
 `Kaique Souza Pereira RA: 2625068`
 `Edgar Parreira França RA: 2625239`
-
+`Ana Luiza Morais Barbieri RA: 2622005`
 
 
 ## Sobre o Projeto
